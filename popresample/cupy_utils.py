@@ -1,21 +1,36 @@
+"""
+Utilities for cupy(numpy).
+"""
 try:
     import cupy as xp
     from cupyx.scipy.special import erf
+    CUPY_LOADED = True
 except ImportError:
     import numpy as xp
     from scipy.special import erf
+    CUPY_LOADED = False
 
     
 def to_numpy(array):
-    """Cast any array to numpy"""
-    return xp.asnumpy(array)
+    """
+    Lifted from gwpopulation (https://github.com/ColmTalbot/gwpopulation)
+    
+    Cast any array to numpy
+    """
+    if not CUPY_LOADED:
+        return array
+    else:
+        return xp.asnumpy(array)
 
 
 def trapz(y, x=None, dx=1.0, axis=-1):
     """
+    Lifted from gwpopulation (https://github.com/ColmTalbot/gwpopulation)
+    
     Lifted from `numpy <https://github.com/numpy/numpy/blob/v1.15.1/numpy/lib/function_base.py#L3804-L3891>`_.
     Integrate along the given axis using the composite trapezoidal rule.
     Integrate `y` (`x`) along given axis.
+    
     Parameters
     ==========
     y : array_like
@@ -28,13 +43,16 @@ def trapz(y, x=None, dx=1.0, axis=-1):
         The spacing between sample points when `x` is None. The default is 1.
     axis : int, optional
         The axis along which to integrate.
+        
     Returns
     =======
     trapz : float
         Definite integral as approximated by trapezoidal rule.
+        
     References
     ==========
     .. [1] Wikipedia page: http://en.wikipedia.org/wiki/Trapezoidal_rule
+    
     Examples
     ========
     >>> trapz([1,2,3])
@@ -79,18 +97,20 @@ def trapz(y, x=None, dx=1.0, axis=-1):
 
 
 def tupleset(t, i, value):
-    '''
+    """
     Used in cumtrapz function below.
-    '''
+    """
     l = list(t)
     l[i] = value
     return tuple(l)
 
 
 def cumtrapz(y, x=None, dx=1.0, axis=-1, initial=0):
-    '''
+    """
     Lifted from https://github.com/scipy/scipy/blob/v0.14.0/scipy/integrate/quadrature.py#L193
+    
     Cumulatively integrate y(x) using the composite trapezoidal rule.
+    
     Parameters
     ----------
     y : array_like
@@ -107,6 +127,7 @@ def cumtrapz(y, x=None, dx=1.0, axis=-1, initial=0):
         Typically this value should be 0.  Default is None, which means no
         value at ``x[0]`` is returned and `res` has one element less than `y`
         along the axis of integration.
+        
     Returns
     -------
     res : ndarray
@@ -114,7 +135,7 @@ def cumtrapz(y, x=None, dx=1.0, axis=-1, initial=0):
         If `initial` is None, the shape is such that the axis of integration
         has one less value than `y`.  If `initial` is given, the shape is equal
         to that of `y`.
-    '''
+    """
     y = xp.asarray(y)
     if x is None:
         d = dx

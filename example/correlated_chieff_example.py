@@ -2,10 +2,13 @@ import numpy as np
 import pickle
 
 from popresample.resampler import ImportanceSampler
-from popresample.preprocessing import load_data
+from popresample.preprocessing import load_data, create_new_param
 
-# Define model and selection effects model
-from popresample.models.models import SPSMD_EffectiveCopula, SinglePeakSmoothedMassDistribution, PowerLawRedshift
+# Define model and vt model
+from popresample.models.joint import SPSMD_EffectiveCopula
+from popresample.models.mass import SinglePeakSmoothedMassDistribution
+from popresample.models.redshift import PowerLawRedshift
+
 model = [SPSMD_EffectiveCopula(), PowerLawRedshift()]
 vt_model = [SinglePeakSmoothedMassDistribution(), PowerLawRedshift()]
 
@@ -14,12 +17,11 @@ data, vt_data, results = load_data(data_file="posteriors.pkl",
                                    vt_file="vt_data_cp.pkl",
                                    result_file="gaussian_chieff_result.json")
 
-# Set up new added hyperparam
-kappa_min = -25
-kappa_max = 25
-param_bins = 25
-new_param = {"kappa":np.linspace(kappa_min, kappa_max, param_bins),
-             "log_prior":np.array(np.log([1/(kappa_max-kappa_min)]*param_bins))}
+# Set up added hyperparam
+new_param = create_new_param("kappa",
+                             param_min=-25,
+                             param_max=25,
+                             n_bins=20)
 
 # Resample
 resampler = ImportanceSampler(model=model,

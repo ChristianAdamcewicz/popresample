@@ -1,3 +1,6 @@
+"""
+Importance sampler.
+"""
 import numpy as np
 from tqdm import tqdm
 from bilby.hyper.model import Model
@@ -5,10 +8,13 @@ from bilby.hyper.model import Model
 from .preprocessing import resample_posteriors
 from .likelihood import Likelihood
 from .selection import ResamplingVT
-from .utils import trapz_exp, it_sample
+from .utils import trapz_exp, it_sample, effective_samples
 
 
 class ImportanceSampler():
+    """
+    Class for importance sampling of population inference results.
+    """
     def __init__(self,
                  model,
                  vt_model,
@@ -16,41 +22,85 @@ class ImportanceSampler():
                  vt_data,
                  results,
                  new_param):
+        """
+        Parameters
+        ----------
+        model: bilby.hyper.model.Model or list
+            The population model.
+        vt_model: bilby.hyper.model.Model or list
+            The population model applied to the vt function.
+        data: list
+            List of posterior samples dictionaries.
+        vt_data: dictionary
+            vt data processed by GWPopulation.
+        results: dictionary
+            Dictionary of results (hyper-posterior samples) from GWPopulation to resample.
+        new_param: dictionary
+            Grids for added hyper-parameter with keys for new hyper-parameter and associated
+            log hyper-prior.
+        """
         self.likelihood = Likelihood(
-            resample_posteriors(data),
             model,
-            ResamplingVT(
-                vt_model,
-                vt_data,
-                len(data)
-            ))
+            resample_posteriors(data),
+            ResamplingVT(vt_model,
+                         vt_data,
+                         len(data)))
         self.results = results
         self.new_param = new_param
         self.new_param_key = self.get_new_param_key(new_param)
+        self.new_results = None
 
     def __call__(self):
-        weights = []
-        new_param_samples = []
+        if self.new_results is None:
+            print("Resampling...")
+            return self.resample()
+        else:
+            print("Using cached result...")
+            return self.new_results
+    
+    def resample(self):
+        """
+        Resamples population results.
+        Returns results dictionary with added weights, new hyper-parameter samples, and updated
+        log likelihoods.
+        """
+        weights = np.array([])
+        new_param_samples = np.array([])
+        new_log_likelihoods = np.array([])
+        
         for i in tqdm(range(len(self.results))):
             hypersample = self.results[i:i+1].to_dict(orient="records")[0]
-            log_likelihood = self.log_likelihood_grid(hypersample)
-            unnormalised_log_posterior = log_likelihood + self.new_param["log_prior"]
-            marginalised_log_likelihood = trapz_exp(unnormalised_log_posterior,
-                                                    self.new_param[self.new_param_key])
-            weight = np.exp(marginalised_log_likelihood - self.results["log_likelihood"][i])
-            weights.append(weight)
+            target, new_param_posterior = self.get_calculations(hypersample)
+            
+            weight = np.exp(target - self.results["log_likelihood"][i])
+            weights = np.append(weights, weight)
 
-            posterior = np.exp(unnormalised_log_posterior - marginalised_log_likelihood)
-            new_param_sample = it_sample(posterior, self.new_param[self.new_param_key])
-            new_param_samples.append(new_param_sample)
-                                
-        effective_samples = self.get_effective_samples(weights)
-        print(f"effective samples = {effective_samples}")
+            new_param_sample = it_sample(new_param_posterior, self.new_param[self.new_param_key])
+            new_param_samples = np.append(new_param_samples, new_param_sample)
+            hypersample[self.new_param_key] = new_param_sample
+            
+            new_log_likelihood = self.likelihood(hypersample)
+            new_log_likelihoods = np.append(new_log_likelihoods, new_log_likelihood)
+
+        new_results = self.make_new_result_dict(weights, new_param_samples, new_log_likelihoods)
+        print(f"effective samples: {effective_samples(weights)}")
         
-        new_results = self.make_new_result_dict(weights, new_param_samples)
         return new_results
-
-    def log_likelihood_grid(self, hypersample):
+    
+    def get_calculations(self, hypersample):
+        """
+        Calculates values used for importance sampling.
+        """
+        log_likelihood = self.get_log_likelihood_grid(hypersample)
+        unnormalised_posterior = log_likelihood + self.new_param["log_prior"]
+        target = trapz_exp(unnormalised_posterior, self.new_param[self.new_param_key])
+        new_param_posterior = np.exp(unnormalised_posterior - target)
+        return target, new_param_posterior
+        
+    def get_log_likelihood_grid(self, hypersample):
+        """
+        Computes log likelihood on a grid for the new hyper-sample.
+        """
         log_likelihood = []
         for new_param in self.new_param[self.new_param_key]:
             hypersample[self.new_param_key] = new_param
@@ -58,19 +108,22 @@ class ImportanceSampler():
             log_likelihood.append(new_log_likelihood)
         return np.array(log_likelihood)
     
-    def get_effective_samples(self, weights):
-        w = np.array(weights)
-        n_eff = np.sum(w)**2 / np.sum(w**2)
-        return n_eff
-    
-    def make_new_result_dict(self, weights, new_param_samples):
+    def make_new_result_dict(self, weights, new_param_samples, new_log_likelihoods):
+        """
+        Makes (and caches) dictionary for new results.
+        """
         new_results = self.results.copy()
         new_results["weight"] = weights
         new_results[self.new_param_key] = new_param_samples
+        new_results["log_likelihood"] = new_log_likelihoods
+        self.new_results = new_results
         return new_results
 
     def get_new_param_key(self, new_param):
+        """
+        Finds the name of the new hyper-parameter.
+        """
         for key in new_param:
-            if key not in ["prior", "log_prior"]:
+            if key not in ["log_prior"]:
                 new_param_key = key
         return new_param_key

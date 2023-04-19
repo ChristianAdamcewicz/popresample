@@ -9,6 +9,7 @@ setup(
     author_email = 'christian.adamcewicz@monash.edu',
     description = 'Importance sampler for resampling gwpopulation results',
     packages=find_packages(exclude=["example"]),
+    package_dir={"popresample": "popresample"},
     install_requires=["numpy", "scipy", "astropy", "bilby", "tqdm"],
-	python_requires=">=3.9",
+    python_requires=">=3.9",
 )
