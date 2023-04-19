@@ -1,0 +1,6 @@
+*.ignore
+popresample.egg-info
+build
+dist
+**/__pycache__/*
+*/.ipynb*
