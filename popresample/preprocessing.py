@@ -38,7 +38,7 @@ def resample_posteriors(posteriors, max_samples=1e300):
     return data
 
 
-def create_new_param(param_name, param_min, param_max, n_bins=20):
+def create_new_param(param_name, param_min, param_max, param_bins=20):
     """
     Creates a dictionary containing a grid for the added parameter and a log prior
     (uniform).
@@ -58,8 +58,8 @@ def create_new_param(param_name, param_min, param_max, n_bins=20):
         Dictionary for new parameter with keys (param_name, "log_prior").
     """
     new_param = {}
-    new_param[param_name] = np.linspace(param_min, param_max, n_bins)
-    new_param["log_prior"] = np.array([-np.log(param_max - param_min)]*n_bins)
+    new_param[param_name] = np.linspace(param_min, param_max, param_bins)
+    new_param["log_prior"] = np.array([-np.log(param_max - param_min)]*param_bins)
     return new_param
 
 

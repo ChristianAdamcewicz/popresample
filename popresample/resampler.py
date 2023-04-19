@@ -3,11 +3,7 @@ Importance sampler.
 """
 import numpy as np
 from tqdm import tqdm
-from bilby.hyper.model import Model
 
-from .preprocessing import resample_posteriors
-from .likelihood import Likelihood
-from .selection import ResamplingVT
 from .utils import trapz_exp, it_sample, effective_samples
 
 
@@ -16,40 +12,26 @@ class ImportanceSampler():
     Class for importance sampling of population inference results.
     """
     def __init__(self,
-                 model,
-                 vt_model,
-                 data,
-                 vt_data,
+                 likelihood,
                  results,
                  new_param):
         """
         Parameters
         ----------
-        model: bilby.hyper.model.Model or list
-            The population model.
-        vt_model: bilby.hyper.model.Model or list
-            The population model applied to the vt function.
-        data: list
-            List of posterior samples dictionaries.
-        vt_data: dictionary
-            vt data processed by GWPopulation.
-        results: dictionary
+        likelihood: object
+            Class that computes likelihood.
+        results: dict
             Dictionary of results (hyper-posterior samples) from GWPopulation to resample.
-        new_param: dictionary
+        new_param: dict
             Grids for added hyper-parameter with keys for new hyper-parameter and associated
             log hyper-prior.
         """
-        self.likelihood = Likelihood(
-            model,
-            resample_posteriors(data),
-            ResamplingVT(vt_model,
-                         vt_data,
-                         len(data)))
+        self.likelihood = likelihood
         self.results = results
         self.new_param = new_param
         self.new_param_key = self.get_new_param_key(new_param)
         self.new_results = None
-
+        
     def __call__(self):
         if self.new_results is None:
             print("Resampling...")

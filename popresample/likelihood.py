@@ -2,6 +2,7 @@
 Likelihood classes for proposal distributions.
 """
 from .cupy_utils import xp
+from .preprocessing import resample_posteriors
 from bilby.hyper.model import Model
 
 
@@ -12,23 +13,24 @@ class Likelihood():
     def __init__(self,
                  model,
                  data,
-                 selection_function):
+                 selection_function,
+                 max_samples=1e300):
         """
         Parameters
         ----------
         model: bilby.hyper.model.Model or list
             The population model.
-        data: dictionary
-            Dictionary of PE samples with shape (n_events, n_samples_per_event).
+        data: list
+            List of posterior samples dictionaries.
         selection_function: class
             Class that computes the selection function.
         """
-        self.data = data
         if isinstance(model, list):
             model = Model(model)
         elif not isinstance(model, Model):
             model = Model([model])
         self.model = model
+        self.data = resample_posteriors(data, max_samples)
         self.selection_function = selection_function
 
     def __call__(self, hypersample):
