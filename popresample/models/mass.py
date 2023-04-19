@@ -46,9 +46,11 @@ class _SmoothedMassDistribution(object):
     Lifted from gwpopulation (https://github.com/ColmTalbot/gwpopulation)
     
     Generic smoothed mass distribution base class.
+
     Implements the low-mass smoothing and power-law mass ratio
     distribution. Requires p_m1 to be implemented.
     """
+
     def __init__(self, mmin=2, mmax=100):
         self.mmin = mmin
         self.mmax = mmax
@@ -102,7 +104,7 @@ class _SmoothedMassDistribution(object):
         Cache the information necessary for linear interpolation of the mass
         ratio normalisation
         """
-        self.n_below = xp.zeros_like(masses, dtype=xp.int) - 1
+        self.n_below = xp.zeros_like(masses, dtype=int) - 1
         m_below = xp.zeros_like(masses)
         for mm in self.m1s:
             self.n_below += masses > mm
@@ -118,12 +120,16 @@ class _SmoothedMassDistribution(object):
         """
         Apply a one sided window between mmin and mmin + delta_m to the
         mass pdf.
+
         The upper cut off is a step function,
         the lower cutoff is a logistic rise over delta_m solar masses.
+
         See T&T18 Eqs 7-8
         Note that there is a sign error in that paper.
+
         S = (f(m - mmin, delta_m) + 1)^{-1}
         f(m') = delta_m / m' + delta_m / (m' - delta_m)
+
         See also, https://en.wikipedia.org/wiki/Window_function#Planck-taper_window
         """
         window = xp.ones_like(masses)
@@ -146,8 +152,9 @@ class SinglePeakSmoothedMassDistribution(_SmoothedMassDistribution):
         
         Powerlaw + peak model for two-dimensional mass distribution with low
         mass smoothing.
+
         https://arxiv.org/abs/1801.02699 Eq. (11) (T&T18)
-        
+
         Parameters
         ----------
         dataset: dict
@@ -168,7 +175,7 @@ class SinglePeakSmoothedMassDistribution(_SmoothedMassDistribution):
             Standard deviation fo the Gaussian component.
         delta_m: float
             Rise length of the low end of the mass distribution.
-            
+
         Notes
         -----
         The interpolation of the p(q) normalisation has a fill value of
@@ -220,4 +227,4 @@ class SinglePeakSmoothedMassDistribution(_SmoothedMassDistribution):
         p_m *= self.smoothing(self.m1s, mmin=mmin, mmax=100, delta_m=delta_m)
 
         norm = trapz(p_m, self.m1s)
-        return 
+        return norm

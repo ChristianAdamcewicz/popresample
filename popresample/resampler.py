@@ -81,7 +81,7 @@ class ImportanceSampler():
             
             new_log_likelihood = self.likelihood(hypersample)
             new_log_likelihoods = np.append(new_log_likelihoods, new_log_likelihood)
-
+            
         new_results = self.make_new_result_dict(weights, new_param_samples, new_log_likelihoods)
         print(f"effective samples: {effective_samples(weights)}")
         
