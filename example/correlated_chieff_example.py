@@ -1,4 +1,8 @@
-import numpy as np
+"""
+In this example, we take results for a PL+P mass and gaussian chi_eff
+population model, and add a correlation between mass ratio and chi_eff
+parameterised by kappa.
+"""
 import pickle
 
 from popresample.resampler import ImportanceSampler
