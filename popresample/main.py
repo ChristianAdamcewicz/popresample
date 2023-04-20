@@ -12,7 +12,7 @@ from .resampler import ImportanceSampler
 
 def create_parser():
     parser = BilbyArgParser()
-    parser.add("ini", type=str, is_config_file=True, help="Configuration ini file")
+    parser.add("ini", type=str, is_config_file=True, help="Configuration ini file.")
     parser.add_argument("--models",
                         type=str,
                         action="append",
