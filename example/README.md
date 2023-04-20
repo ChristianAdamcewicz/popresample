@@ -1,4 +1,4 @@
-This tutorial supposes we already have results for a power-law + peak mass, and gaussian $\chi_\mathrm{eff}$ population model.
+This example supposes we already have results for a power-law + peak mass, and gaussian $\chi_\mathrm{eff}$ population model.
 The .ini file sets the desired population `models` for the proposal distribution, as well as the `vt-models` for selection effects.
 The `data-file` points to the event posterior samples, a processed `vt-file`, and our gwpopulation `result-file`.
 We then specify an `output-file` for our resampled results.
