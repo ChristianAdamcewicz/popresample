@@ -1,19 +1,24 @@
 """
-A place to joint models.
+A place to store custom joint models.
 """
-from ..cupy_utils import xp, trapz, cumtrapz
-from .model_utils import powerlaw, frank_copula
+from gwpopulation.cupy_utils import xp, trapz
+from gwpopulation.utils import powerlaw, truncnorm
+from gwpopulation.models.mass import two_component_single
 
-from .mass import SinglePeakSmoothedMassDistribution, two_component_single
-from .spin import gaussian_chi_eff
+from .model_utils import frank_copula, cumtrapz
+from .mass import LegacySinglePeakSmoothedMassDistribution
 
 
-class SPSMD_EffectiveCopula(SinglePeakSmoothedMassDistribution):
+class SPSMD_EffectiveCopula(LegacySinglePeakSmoothedMassDistribution):
     """
     Power-Law + Peak mass distribution and Gaussian effective inspiral spin
     distribution with a Frank copula density function correlating mass ratio
     and effective inspiral spin.
     """
+    def __init__(self):
+        super(SPSMD_EffectiveCopula, self).__init__()
+        self.chi_effs = xp.linspace(-1,1,500)
+    
     def __call__(self, dataset, alpha, beta, mmin, mmax, lam, mpp, sigpp, delta_m,
                  mu_chi_eff, log_sigma_chi_eff, kappa):
         """
@@ -46,14 +51,16 @@ class SPSMD_EffectiveCopula(SinglePeakSmoothedMassDistribution):
         """
         p_mass = super(SPSMD_EffectiveCopula, self).__call__(
             dataset, alpha, beta, mmin, mmax, lam, mpp, sigpp, delta_m)
-        p_spin = gaussian_chi_eff(dataset["chi_eff"], mu_chi_eff, log_sigma_chi_eff)
+        sigma_chi_eff = 10**log_sigma_chi_eff
+        p_spin = truncnorm(dataset["chi_eff"], mu=mu_chi_eff, sigma=sigma_chi_eff,
+                           high=1, low=-1)
         u, v = self.copula_coords(dataset, alpha, beta, mmin, mmax, lam, mpp, sigpp, delta_m,
-                                  mu_chi_eff, log_sigma_chi_eff)
+                                  mu_chi_eff, sigma_chi_eff)
         prob = p_mass * p_spin * frank_copula(u, v, kappa)
         return prob
     
     def copula_coords(self, dataset, alpha, beta, mmin, mmax, lam, mpp, sigpp, delta_m,
-                      mu_chi_eff, log_sigma_chi_eff):
+                      mu_chi_eff, sigma_chi_eff):
         """
         Retrieves copula coordinates u(q) and v(chi_eff).
         """
@@ -89,7 +96,8 @@ class SPSMD_EffectiveCopula(SinglePeakSmoothedMassDistribution):
         
         '''get v(chi_eff)'''
         # p(chi_eff) grid
-        p_chi_eff = gaussian_chi_eff(self.chi_effs, mu_chi_eff, log_sigma_chi_eff)
+        p_chi_eff = truncnorm(self.chi_effs, mu=mu_chi_eff, sigma=sigma_chi_eff,
+                              high=1, low=-1)
         
         # v(chi_eff) grid
         v = cumtrapz(p_chi_eff, self.chi_effs, initial=0)

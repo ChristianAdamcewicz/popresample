@@ -12,6 +12,6 @@ setup(
     package_dir={"popresample": "popresample"},
     entry_points={
         "console_scripts": ["popresample=popresample.main:run"]},
-    install_requires=["numpy", "scipy", "astropy", "bilby", "bilby-pipe", "tqdm"],
+    install_requires=["bilby", "bilby-pipe", "gwpopulation", "numpy", "scipy", "tqdm"],
     python_requires=">=3.9",
 )

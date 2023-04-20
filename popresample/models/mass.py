@@ -1,52 +1,17 @@
 """
-A place to store mass models.
+A place to store custom mass models.
 """
-from ..cupy_utils import xp, trapz
-from .model_utils import powerlaw, truncnorm
-
-
-def two_component_single(
-    mass, alpha, mmin, mmax, lam, mpp, sigpp, gaussian_mass_maximum=100):
-    r"""
-    Lifted from gwpopulation (https://github.com/ColmTalbot/gwpopulation)
-    
-    Power law model for one-dimensional mass distribution with a Gaussian component.
-    .. math::
-        p(m) &= (1 - \lambda_m) p_{\text{pow}} + \lambda_m p_{\text{norm}}
-        p_{\text{pow}}(m) &\propto m^{-\alpha} : m_\min \leq m < m_\max
-        p_{\text{norm}}(m) &\propto \exp\left(-\frac{(m - \mu_{m})^2}{2\sigma^2_m}\right)
-        
-    Parameters
-    ----------
-    mass: array-like
-        Array of mass values (:math:`m`).
-    alpha: float
-        Negative power law exponent for the black hole distribution (:math:`\alpha`).
-    mmin: float
-        Minimum black hole mass (:math:`m_\min`).
-    mmax: float
-        Maximum black hole mass (:math:`m_\max`).
-    lam: float
-        Fraction of black holes in the Gaussian component (:math:`\lambda_m`).
-    mpp: float
-        Mean of the Gaussian component (:math:`\mu_m`).
-    sigpp: float
-        Standard deviation of the Gaussian component (:math:`\sigma_m`).
-    gaussian_mass_maximum: float, optional
-        Upper truncation limit of the Gaussian component. (default: 100)
-    """
-    p_pow = powerlaw(mass, alpha=-alpha, high=mmax, low=mmin)
-    p_norm = truncnorm(mass, mu=mpp, sigma=sigpp, high=gaussian_mass_maximum, low=mmin)
-    prob = (1 - lam) * p_pow + lam * p_norm
-    return prob
+from gwpopulation.cupy_utils import xp, trapz
+from gwpopulation.utils import powerlaw
+from gwpopulation.models.mass import two_component_single
 
 
 class _SmoothedMassDistribution(object):
     """
-    Lifted from gwpopulation (https://github.com/ColmTalbot/gwpopulation)
+    Lifted from gwpopulation v0.6.2
+    (https://github.com/ColmTalbot/gwpopulation/tree/4aeb68e6f9493b31408fcbe89ac4a67f7efb5dbf)
     
     Generic smoothed mass distribution base class.
-
     Implements the low-mass smoothing and power-law mass ratio
     distribution. Requires p_m1 to be implemented.
     """
@@ -59,7 +24,6 @@ class _SmoothedMassDistribution(object):
         self.dm = self.m1s[1] - self.m1s[0]
         self.dq = self.qs[1] - self.qs[0]
         self.m1s_grid, self.qs_grid = xp.meshgrid(self.m1s, self.qs)
-        self.chi_effs = xp.linspace(-1, 1, 500)
 
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
@@ -120,16 +84,12 @@ class _SmoothedMassDistribution(object):
         """
         Apply a one sided window between mmin and mmin + delta_m to the
         mass pdf.
-
         The upper cut off is a step function,
         the lower cutoff is a logistic rise over delta_m solar masses.
-
         See T&T18 Eqs 7-8
         Note that there is a sign error in that paper.
-
         S = (f(m - mmin, delta_m) + 1)^{-1}
         f(m') = delta_m / m' + delta_m / (m' - delta_m)
-
         See also, https://en.wikipedia.org/wiki/Window_function#Planck-taper_window
         """
         window = xp.ones_like(masses)
@@ -145,16 +105,15 @@ class _SmoothedMassDistribution(object):
         return window
 
 
-class SinglePeakSmoothedMassDistribution(_SmoothedMassDistribution):
+class LegacySinglePeakSmoothedMassDistribution(_SmoothedMassDistribution):
     def __call__(self, dataset, alpha, beta, mmin, mmax, lam, mpp, sigpp, delta_m):
         """
-        Lifted from gwpopulation (https://github.com/ColmTalbot/gwpopulation)
+        Lifted from gwpopulation v0.6.2
+        (https://github.com/ColmTalbot/gwpopulation/tree/4aeb68e6f9493b31408fcbe89ac4a67f7efb5dbf)
         
         Powerlaw + peak model for two-dimensional mass distribution with low
         mass smoothing.
-
         https://arxiv.org/abs/1801.02699 Eq. (11) (T&T18)
-
         Parameters
         ----------
         dataset: dict
@@ -175,7 +134,6 @@ class SinglePeakSmoothedMassDistribution(_SmoothedMassDistribution):
             Standard deviation fo the Gaussian component.
         delta_m: float
             Rise length of the low end of the mass distribution.
-
         Notes
         -----
         The interpolation of the p(q) normalisation has a fill value of

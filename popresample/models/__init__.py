@@ -1,1 +1,1 @@
-from . import model_utils, joint, mass, redshift, spin
+from . import model_utils, mass, redshift, spin, joint, model_map

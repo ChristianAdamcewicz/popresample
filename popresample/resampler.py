@@ -18,7 +18,7 @@ class ImportanceSampler():
         """
         Parameters
         ----------
-        likelihood: object
+        likelihood: gwpopulation.hyperpe.HyperparameterLikelihood
             Class that computes likelihood.
         results: dict
             Dictionary of results (hyper-posterior samples) from GWPopulation to resample.
@@ -61,7 +61,8 @@ class ImportanceSampler():
             new_param_samples = np.append(new_param_samples, new_param_sample)
             hypersample[self.new_param_key] = new_param_sample
             
-            new_log_likelihood = self.likelihood(hypersample)
+            self.likelihood.parameters = hypersample
+            new_log_likelihood = self.likelihood.log_likelihood_ratio()
             new_log_likelihoods = np.append(new_log_likelihoods, new_log_likelihood)
             
         new_results = self.make_new_result_dict(weights, new_param_samples, new_log_likelihoods)
@@ -86,7 +87,8 @@ class ImportanceSampler():
         log_likelihood = []
         for new_param in self.new_param[self.new_param_key]:
             hypersample[self.new_param_key] = new_param
-            new_log_likelihood = self.likelihood(hypersample)
+            self.likelihood.parameters = hypersample
+            new_log_likelihood = self.likelihood.log_likelihood_ratio()
             log_likelihood.append(new_log_likelihood)
         return np.array(log_likelihood)
     

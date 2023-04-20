@@ -1,41 +1,13 @@
 """
 Functions for processing data and setting up resampler inputs.
 """
-from .cupy_utils import xp
 import numpy as np
 import pickle
+
 from bilby import result
+from bilby.hyper.model import Model
 
-
-def resample_posteriors(posteriors, max_samples=1e300):
-    """
-    Lifted from gwpopulation (https://github.com/ColmTalbot/gwpopulation)
-    
-    Converts list of posterior sample dictionaries to dictionary of arrays
-    of parameter samples of shapes (n_events, n_samples_per_event).
-    
-    Parameters
-    ----------
-    posteriors: list
-        List of dictionaries containing posterior samples.
-    max_samples: int
-        Maximum number of posterior samples to use per-event.
-    
-    Returns
-    -------
-    data: dict
-        Dictionary of posterior samples with shapes (n_events, n_samples_per_event).
-    """
-    for posterior in posteriors:
-        max_samples = min(len(posterior), max_samples)
-    data = {key: [] for key in posteriors[0]}
-    for posterior in posteriors:
-        temp = posterior.sample(max_samples)
-        for key in data:
-            data[key].append(temp[key])
-    for key in data:
-        data[key] = xp.array(data[key])
-    return data
+from .models.model_map import MODEL_MAP
 
 
 def create_new_param(param_name, param_min, param_max, param_bins=20):
@@ -61,6 +33,35 @@ def create_new_param(param_name, param_min, param_max, param_bins=20):
     new_param[param_name] = np.linspace(param_min, param_max, param_bins)
     new_param["log_prior"] = np.array([-np.log(param_max - param_min)]*param_bins)
     return new_param
+
+
+def load_models(models, vt_models):
+    """
+    Loads population models using model names.
+    
+    Parameters
+    ----------
+    models: list (str)
+        List of population model mames.
+    vt_models: list (str)
+        List of vt model mames.
+    
+    Returns
+    -------
+    model: bilby.hyper.model.Model
+        Loaded model.
+    vt_models: bilby.hyper.model.Model
+        Loaded vt model.
+    """
+    model = []
+    vt_model = []
+    for key in models:
+        model.append(MODEL_MAP[key])
+    for key in vt_models:
+        vt_model.append(MODEL_MAP[key])
+    model = Model(model)
+    vt_model = Model(vt_model)
+    return model, vt_model
 
 
 def load_data(data_file, vt_file, result_file):
@@ -90,4 +91,8 @@ def load_data(data_file, vt_file, result_file):
     with open(vt_file, "rb") as f:
         vt_data = pickle.load(f)
     results = result.read_in_result(filename=result_file).posterior
-    return data, vt_data, results
+    evidences = []
+    for event in data:
+        evidence = event["ln_evidence"][0]
+        evidences.append(evidence)
+    return data, vt_data, results, evidences

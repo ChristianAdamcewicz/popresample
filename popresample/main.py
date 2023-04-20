@@ -1,22 +1,13 @@
-import sys
 import pickle
+
 from bilby_pipe.bilbyargparser import BilbyArgParser
 
-from .preprocessing import load_data, create_new_param
-from .likelihood import Likelihood
-from .selection import ResamplingVT
+from gwpopulation.hyperpe import HyperparameterLikelihood
+from gwpopulation.vt import ResamplingVT
+from gwpopulation.conversions import convert_to_beta_parameters
+
+from .preprocessing import load_models, load_data, create_new_param
 from .resampler import ImportanceSampler
-
-from .models.mass import SinglePeakSmoothedMassDistribution
-from .models.redshift import PowerLawRedshift
-from .models.joint import SPSMD_EffectiveCopula
-
-
-MODEL_MAP = {
-    "SinglePeakSmoothedMassDistribution":SinglePeakSmoothedMassDistribution(),
-    "PowerLawRedshift":PowerLawRedshift(),
-    "SPSMD_EffectiveCopula":SPSMD_EffectiveCopula()
-}
 
 
 def create_parser():
@@ -63,16 +54,6 @@ def create_parser():
                         help="Maximum number of samples per posterior to use.")
     return parser
 
-    
-def load_models(models, vt_models):
-    model = []
-    vt_model = []
-    for key in models:
-        model.append(MODEL_MAP[key])
-    for key in vt_models:
-        vt_model.append(MODEL_MAP[key])
-    return model, vt_model
-
 
 def run():
     parser = create_parser()
@@ -80,7 +61,8 @@ def run():
     
     model, vt_model = load_models(models=args.models,
                                   vt_models=args.vt_models)
-    data, vt_data, results = load_data(data_file=args.data_file,
+    data, vt_data, results, evidences = load_data(
+                                       data_file=args.data_file,
                                        vt_file=args.vt_file,
                                        result_file=args.result_file)
     new_param = create_new_param(args.new_param_name,
@@ -91,10 +73,13 @@ def run():
     selection_function = ResamplingVT(model=vt_model,
                                       data=vt_data,
                                       n_events=len(data))
-    likelihood = Likelihood(model=model,
-                            data=data,
+    likelihood = HyperparameterLikelihood(
+                            posteriors=data,
+                            hyper_prior=model,
+                            ln_evidences=evidences,
+                            max_samples=args.max_samples,
                             selection_function=selection_function,
-                            max_samples=args.max_samples)
+                            conversion_function=convert_to_beta_parameters)
     
     resampler = ImportanceSampler(likelihood=likelihood,
                                   results=results,
