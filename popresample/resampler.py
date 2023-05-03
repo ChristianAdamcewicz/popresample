@@ -50,7 +50,8 @@ class ImportanceSampler():
         new_param_samples = np.array([])
         new_log_likelihoods = np.array([])
         
-        for i in tqdm(range(len(self.results))):
+        pbar = tqdm(range(len(self.results)))
+        for i in pbar:
             hypersample = self.results[i:i+1].to_dict(orient="records")[0]
             target, new_param_posterior = self.get_calculations(hypersample)
             
@@ -64,6 +65,10 @@ class ImportanceSampler():
             self.likelihood.parameters = hypersample
             new_log_likelihood = self.likelihood.log_likelihood_ratio()
             new_log_likelihoods = np.append(new_log_likelihoods, new_log_likelihood)
+            
+            pbar.set_postfix({'log_L(old)':self.results["log_likelihood"][i],
+                              'log_L(new)':new_log_likelihood,
+                              self.new_param_key:new_param_sample})
             
         new_results = self.make_new_result_dict(weights, new_param_samples, new_log_likelihoods)
         print(f"effective samples: {effective_samples(weights)}")
