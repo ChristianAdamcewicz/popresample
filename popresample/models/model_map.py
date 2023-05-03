@@ -1,14 +1,17 @@
 """
 Dictionary for mapping population models.
 """
+from gwpopulation.models.mass import SinglePeakSmoothedMassDistribution
+from gwpopulation.models.spin import iid_spin
 from gwpopulation.models.redshift import PowerLawRedshift
 
-from .mass import LegacySinglePeakSmoothedMassDistribution
-from .joint import SPSMD_EffectiveCopula
+from .joint import MassRedshiftCopula, SPSMD_EffectiveCopula
 
 
 MODEL_MAP = {
-    "SinglePeakSmoothedMassDistribution":LegacySinglePeakSmoothedMassDistribution(),
+    "SinglePeakSmoothedMassDistribution":SinglePeakSmoothedMassDistribution(),
+    "iid_spin":iid_spin,
     "PowerLawRedshift":PowerLawRedshift(),
+    "MassRedshiftCopula":MassRedshiftCopula(),
     "SPSMD_EffectiveCopula":SPSMD_EffectiveCopula()
 }

@@ -32,7 +32,6 @@ def create_parser():
                         help="Population result file to resample.")
     parser.add_argument("--new-param-name",
                         type=str,
-                        default="new_param",
                         help="Name of added hyper-parameter.")
     parser.add_argument("--param-min",
                         type=float,
@@ -42,7 +41,7 @@ def create_parser():
                         help="Maximum value of added hyper-parameter.")
     parser.add_argument("--param-bins",
                         type=int,
-                        default=20,
+                        default=25,
                         help="Number of grid points to evaluate new hyper-parameter at.")
     parser.add_argument("--output-file",
                         type=str,
@@ -61,8 +60,7 @@ def run():
     
     model, vt_model = load_models(models=args.models,
                                   vt_models=args.vt_models)
-    data, vt_data, results, evidences = load_data(
-                                       data_file=args.data_file,
+    data, vt_data, results = load_data(data_file=args.data_file,
                                        vt_file=args.vt_file,
                                        result_file=args.result_file)
     new_param = create_new_param(args.new_param_name,
@@ -76,7 +74,6 @@ def run():
     likelihood = HyperparameterLikelihood(
                             posteriors=data,
                             hyper_prior=model,
-                            ln_evidences=evidences,
                             max_samples=args.max_samples,
                             selection_function=selection_function,
                             conversion_function=convert_to_beta_parameters)
@@ -84,7 +81,7 @@ def run():
     resampler = ImportanceSampler(likelihood=likelihood,
                                   results=results,
                                   new_param=new_param)
-    new_results = resampler()
+    new_results = resampler.resample()
     
     with open(args.output_file, "wb") as f:
         pickle.dump(new_results, f)

@@ -10,7 +10,7 @@ from bilby.hyper.model import Model
 from .models.model_map import MODEL_MAP
 
 
-def create_new_param(param_name, param_min, param_max, param_bins=20):
+def create_new_param(param_name, param_min, param_max, param_bins=25):
     """
     Creates a dictionary containing a grid for the added parameter and a log prior
     (uniform).
@@ -53,6 +53,8 @@ def load_models(models, vt_models):
     vt_models: bilby.hyper.model.Model
         Loaded vt model.
     """
+    if vt_models is None:
+        vt_models = models
     model = []
     vt_model = []
     for key in models:
@@ -91,8 +93,4 @@ def load_data(data_file, vt_file, result_file):
     with open(vt_file, "rb") as f:
         vt_data = pickle.load(f)
     results = result.read_in_result(filename=result_file).posterior
-    evidences = []
-    for event in data:
-        evidence = event["ln_evidence"][0]
-        evidences.append(evidence)
-    return data, vt_data, results, evidences
+    return data, vt_data, results

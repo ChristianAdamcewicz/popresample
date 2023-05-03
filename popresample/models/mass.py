@@ -186,3 +186,4 @@ class LegacySinglePeakSmoothedMassDistribution(_SmoothedMassDistribution):
 
         norm = trapz(p_m, self.m1s)
         return norm
+    
