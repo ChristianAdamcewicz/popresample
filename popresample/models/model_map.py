@@ -9,9 +9,9 @@ from .joint import MassRedshiftCopula, SPSMD_EffectiveCopula
 
 
 MODEL_MAP = {
-    "SinglePeakSmoothedMassDistribution":SinglePeakSmoothedMassDistribution(),
+    "SinglePeakSmoothedMassDistribution":SinglePeakSmoothedMassDistribution,
     "iid_spin":iid_spin,
-    "PowerLawRedshift":PowerLawRedshift(),
-    "MassRedshiftCopula":MassRedshiftCopula(),
-    "SPSMD_EffectiveCopula":SPSMD_EffectiveCopula()
+    "PowerLawRedshift":PowerLawRedshift,
+    "MassRedshiftCopula":MassRedshiftCopula,
+    "SPSMD_EffectiveCopula":SPSMD_EffectiveCopula
 }

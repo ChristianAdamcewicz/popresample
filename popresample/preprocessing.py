@@ -1,6 +1,7 @@
 """
 Functions for processing data and setting up resampler inputs.
 """
+import inspect
 import numpy as np
 import pickle
 
@@ -55,15 +56,29 @@ def load_models(models, vt_models):
     """
     if vt_models is None:
         vt_models = models
-    model = []
-    vt_model = []
-    for key in models:
-        model.append(MODEL_MAP[key])
-    for key in vt_models:
-        vt_model.append(MODEL_MAP[key])
-    model = Model(model)
-    vt_model = Model(vt_model)
+    model = Model([load_model(key) for key in models])
+    vt_model = Model([load_model(key) for key in vt_models])
     return model, vt_model
+
+
+def load_model(key):
+    """
+    Loads individual model from model map.
+    
+    Parameters
+    ----------
+    key: str
+        Name of model to load.
+        
+    Returns
+    -------
+    model: func
+        Loaded model.
+    """
+    model = MODEL_MAP[key]
+    if inspect.isclass(model):
+        model = model()
+    return model
 
 
 def load_data(data_file, vt_file, result_file):
