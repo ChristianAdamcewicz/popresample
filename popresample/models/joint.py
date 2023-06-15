@@ -64,12 +64,12 @@ class MassRedshiftCopula(SinglePeakSmoothedMassDistribution, PowerLawRedshift):
                        'delta_m':delta_m})
         prob *= PowerLawRedshift.__call__(self, dataset, **{'lamb':lamb})
         
-        u = self.get_u(dataset, alpha, beta, mmin, mmax, lam, mpp, sigpp, delta_m)
+        u = self.get_u(dataset, alpha, mmin, mmax, lam, mpp, sigpp, delta_m)
         v = self.get_v(dataset, lamb)
         prob *= frank_copula(u, v, kappa)
         return prob
         
-    def get_u(self, dataset, alpha, beta, mmin, mmax, lam, mpp, sigpp, delta_m):
+    def get_u(self, dataset, alpha, mmin, mmax, lam, mpp, sigpp, delta_m):
         # p(m1) grid
         p_m = two_component_single(
             self.m1s, alpha=alpha, mmin=mmin, mmax=mmax, lam=lam, mpp=mpp, sigpp=sigpp)
@@ -77,23 +77,12 @@ class MassRedshiftCopula(SinglePeakSmoothedMassDistribution, PowerLawRedshift):
         p_m_norm = trapz(p_m, self.m1s)
         p_m /= p_m_norm
         p_m = xp.nan_to_num(p_m)
-        # p(q|m1) grid
-        p_q = powerlaw(self.qs_grid, beta, 1, mmin / self.m1s_grid)
-        p_q *= self.smoothing(
-            self.m1s_grid * self.qs_grid, mmin=mmin, mmax=self.m1s_grid, delta_m=delta_m)
-        p_q_norm = trapz(p_q, self.qs, axis=0)
-        p_q /= p_q_norm
-        p_q = xp.nan_to_num(p_q)
-        # p(q) grid
-        integrand_q_m = p_q * p_m
-        p_q_marg = trapz(integrand_q_m, self.m1s, axis=-1)
-        p_q_marg = xp.nan_to_num(p_q_marg)
-        # u(q) grid
-        u = cumtrapz(p_q_marg, self.qs, initial=0)
+        # u(m1) grid
+        u = cumtrapz(p_m, self.m1s, initial=0)
         u /= xp.max(u)
         u = xp.nan_to_num(u)
         # Interpolate for u(q)
-        res_u = xp.interp(dataset["mass_ratio"], self.qs, u)
+        res_u = xp.interp(dataset["mass_1"], self.m1s, u)
         return res_u
         
     def get_v(self, dataset, lamb):

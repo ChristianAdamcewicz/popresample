@@ -14,7 +14,7 @@ class ImportanceSampler():
     def __init__(self,
                  likelihood,
                  results,
-                 new_param):
+                 new_param=None):
         """
         Parameters
         ----------
@@ -29,7 +29,8 @@ class ImportanceSampler():
         self.likelihood = likelihood
         self.results = results
         self.new_param = new_param
-        self.new_param_key = self.get_new_param_key(new_param)
+        if new_param is not None:
+            self.new_param_key = self.get_new_param_key(new_param)
         self.new_results = None
         
     def __call__(self):
@@ -48,7 +49,6 @@ class ImportanceSampler():
         """
         weights = np.array([])
         new_param_samples = np.array([])
-        new_log_likelihoods = np.array([])
         
         pbar = tqdm(range(len(self.results)))
         for i in pbar:
@@ -58,19 +58,19 @@ class ImportanceSampler():
             weight = np.exp(target - self.results["log_likelihood"][i])
             weights = np.append(weights, weight)
 
-            new_param_sample = it_sample(new_param_posterior, self.new_param[self.new_param_key])
-            new_param_samples = np.append(new_param_samples, new_param_sample)
-            hypersample[self.new_param_key] = new_param_sample
+            if self.new_param is not None:
+                new_param_sample = it_sample(new_param_posterior, self.new_param[self.new_param_key])
+                new_param_samples = np.append(new_param_samples, new_param_sample)
+                hypersample[self.new_param_key] = new_param_sample
             
-            self.likelihood.parameters = hypersample
-            new_log_likelihood = self.likelihood.log_likelihood_ratio()
-            new_log_likelihoods = np.append(new_log_likelihoods, new_log_likelihood)
+                pbar.set_postfix({'log_L(old)':self.results["log_likelihood"][i],
+                                  'weight':weight,
+                                  self.new_param_key:new_param_sample})
+            else:
+                pbar.set_postfix({'log_L(old)':self.results["log_likelihood"][i],
+                                  'weight':weight})
             
-            pbar.set_postfix({'log_L(old)':self.results["log_likelihood"][i],
-                              'log_L(new)':new_log_likelihood,
-                              self.new_param_key:new_param_sample})
-            
-        new_results = self.make_new_result_dict(weights, new_param_samples, new_log_likelihoods)
+        new_results = self.make_new_result_dict(weights, new_param_samples)
         print(f"effective samples: {effective_samples(weights)}")
         
         return new_results
@@ -79,6 +79,10 @@ class ImportanceSampler():
         """
         Calculates values used for importance sampling.
         """
+        if self.new_param is None:
+            self.likelihood.parameters = hypersample
+            target = self.likelihood.log_likelihood_ratio()
+            return target, None
         log_likelihood = self.get_log_likelihood_grid(hypersample)
         unnormalised_posterior = log_likelihood + self.new_param["log_prior"]
         target = trapz_exp(unnormalised_posterior, self.new_param[self.new_param_key])
@@ -97,14 +101,14 @@ class ImportanceSampler():
             log_likelihood.append(new_log_likelihood)
         return np.array(log_likelihood)
     
-    def make_new_result_dict(self, weights, new_param_samples, new_log_likelihoods):
+    def make_new_result_dict(self, weights, new_param_samples):
         """
         Makes (and caches) dictionary for new results.
         """
         new_results = self.results.copy()
         new_results["weight"] = weights
-        new_results[self.new_param_key] = new_param_samples
-        new_results["log_likelihood"] = new_log_likelihoods
+        if self.new_param is not None:
+            new_results[self.new_param_key] = new_param_samples
         self.new_results = new_results
         return new_results
 

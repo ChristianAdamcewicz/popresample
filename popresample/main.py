@@ -63,10 +63,13 @@ def run():
     data, vt_data, results = load_data(data_file=args.data_file,
                                        vt_file=args.vt_file,
                                        result_file=args.result_file)
-    new_param = create_new_param(args.new_param_name,
-                                 param_min=args.param_min,
-                                 param_max=args.param_max,
-                                 param_bins=args.param_bins)
+    if args.new_param_name is None:
+        new_param = None
+    else:
+        new_param = create_new_param(args.new_param_name,
+                                     param_min=args.param_min,
+                                     param_max=args.param_max,
+                                     param_bins=args.param_bins)
     
     selection_function = ResamplingVT(model=vt_model,
                                       data=vt_data,
