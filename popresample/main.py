@@ -17,11 +17,18 @@ def create_parser():
                         type=str,
                         action="append",
                         help="List of models for proposal distribution.")
+    parser.add_argument("--models2",
+                        type=str,
+                        action="append",
+                        help="List of models for proposal distribution.")
     parser.add_argument("--vt-models",
                         type=str,
                         action="append",
                         help="List of models for selection effects.")
     parser.add_argument("--data-file",
+                        type=str,
+                        help="File containing event posteriors.")
+    parser.add_argument("--data-file2",
                         type=str,
                         help="File containing event posteriors.")
     parser.add_argument("--vt-file",
@@ -58,11 +65,13 @@ def run():
     parser = create_parser()
     args, unknown_args = parser.parse_known_args()
     
-    model, vt_model = load_models(models=args.models,
-                                  vt_models=args.vt_models)
-    data, vt_data, results = load_data(data_file=args.data_file,
-                                       vt_file=args.vt_file,
-                                       result_file=args.result_file)
+    model, model2, vt_model = load_models(models=args.models,
+                                          models2=args.models2,
+                                          vt_models=args.vt_models)
+    data, data2, vt_data, results = load_data(data_file=args.data_file,
+                                              data_file2=args.data_file2,
+                                              vt_file=args.vt_file,
+                                              result_file=args.result_file)
     if args.new_param_name is None:
         new_param = None
     else:
@@ -75,8 +84,10 @@ def run():
                                       data=vt_data,
                                       n_events=len(data))
     likelihood = HyperparameterLikelihood(
-                            posteriors=data,
-                            hyper_prior=model,
+                            posteriors1=data,
+                            posteriors2=data2,
+                            hyper_prior1=model,
+                            hyper_prior2=model2,
                             max_samples=args.max_samples,
                             selection_function=selection_function,
                             conversion_function=convert_to_beta_parameters)

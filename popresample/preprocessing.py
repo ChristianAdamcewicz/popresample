@@ -36,7 +36,7 @@ def create_new_param(param_name, param_min, param_max, param_bins=25):
     return new_param
 
 
-def load_models(models, vt_models):
+def load_models(models, models2, vt_models):
     """
     Loads population models using model names.
     
@@ -57,8 +57,9 @@ def load_models(models, vt_models):
     if vt_models is None:
         vt_models = models
     model = Model([load_model(key) for key in models])
+    model2 = Model([load_model(key) for key in models2])
     vt_model = Model([load_model(key) for key in vt_models])
-    return model, vt_model
+    return model, model2, vt_model
 
 
 def load_model(key):
@@ -81,7 +82,7 @@ def load_model(key):
     return model
 
 
-def load_data(data_file, vt_file, result_file):
+def load_data(data_file, data_file2, vt_file, result_file):
     """
     Loads data as packed by gwpopulation.
     
@@ -105,7 +106,9 @@ def load_data(data_file, vt_file, result_file):
     """
     with open(data_file, "rb") as f:
         data = pickle.load(f)
+    with open(data_file2, "rb") as f:
+        data2 = pickle.load(f)
     with open(vt_file, "rb") as f:
         vt_data = pickle.load(f)
     results = result.read_in_result(filename=result_file).posterior
-    return data, vt_data, results
+    return data, data2, vt_data, results
