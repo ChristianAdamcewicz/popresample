@@ -36,28 +36,33 @@ def create_new_param(param_name, param_min, param_max, param_bins=25):
     return new_param
 
 
-def load_models(models, vt_models):
+def load_models(args):
     """
     Loads population models using model names.
     
     Parameters
     ----------
-    models: list (str)
-        List of population model mames.
-    vt_models: list (str)
-        List of vt model mames.
+    args:
+        args.
     
     Returns
     -------
-    model: bilby.hyper.model.Model
-        Loaded model.
-    vt_models: bilby.hyper.model.Model
-        Loaded vt model.
+    model: dict of bilby.hyper.model.Model
+        Loaded modela.
+    vt_model: dict of bilby.hyper.model.Model
+        Loaded vt modela.
     """
-    if vt_models is None:
-        vt_models = models
-    model = Model([load_model(key) for key in models])
-    vt_model = Model([load_model(key) for key in vt_models])
+    model = dict(hyper_prior=Model([load_model(key) for key in args.models]))
+    vt_model = dict(model=Model([load_model(key) for key in args.vt_models]))
+    if args.n_likelihoods > 1:
+        model["hyper_prior2"] = Model([load_model(key) for key in args.models2])
+        vt_model["model2"] = Model([load_model(key) for key in args.vt_models2])
+        if args.n_likelihoods > 2:
+            model["hyper_prior3"] = Model([load_model(key) for key in args.models3])
+            vt_model["model3"] = Model([load_model(key) for key in args.vt_models3])
+            if args.n_likelihoods > 3:
+                model["hyper_prior4"] = Model([load_model(key) for key in args.models4])
+                vt_model["model4"] = Model([load_model(key) for key in args.vt_models4])
     return model, vt_model
 
 
@@ -81,18 +86,20 @@ def load_model(key):
     return model
 
 
-def load_data(data_file, vt_file, result_file):
+def load_from_pickle(filename):
+    with open(filename, "rb") as f:
+        data = pickle.load(f)
+    return data
+
+
+def load_data(args):
     """
     Loads data as packed by gwpopulation.
     
     Parameters
     ----------
-    data_file: str
-        Name of file containing posterior samples.
-    vt_file: str
-        Name of file containing vt samples.
-    result_file: str
-        Name of file containing gwpopulation result file.
+    args:
+        args.
     
     Returns
     -------
@@ -103,9 +110,29 @@ def load_data(data_file, vt_file, result_file):
     results: dict
         Unpacked results.
     """
-    with open(data_file, "rb") as f:
-        data = pickle.load(f)
-    with open(vt_file, "rb") as f:
-        vt_data = pickle.load(f)
-    results = result.read_in_result(filename=result_file).posterior
-    return data, vt_data, results
+    for i in range(1, args.n_likelihoods+1):
+        data = load_from_pickle(args.data_file[i-1])
+        ln_evidences = load_evidences(data)
+        vt_data = load_from_pickle(args.vt_file[i-1])
+        if i == 1:
+            data_dict = dict(posteriors=data)
+            ln_evidences_dict = dict(ln_evidences=ln_evidences)
+            vt_data_dict = dict(data=vt_data)
+        else:
+            data_dict[f"posteriors{i}"] = data
+            ln_evidences_dict[f"ln_evidences{i}"] = ln_evidences
+            vt_data_dict[f"data{i}"] = vt_data
+    results = result.read_in_result(filename=args.result_file).posterior
+    return data_dict, ln_evidences_dict, vt_data_dict, results
+
+
+def load_evidences(posteriors):
+    evidences = []
+    for post in posteriors:
+        if "ln_evidence" in post.keys():
+            _evidences = post.pop("ln_evidence")
+            evidences.append(_evidences.iloc[0])
+    if len(evidences) != len(posteriors):
+        return None
+    else:
+        return evidences
